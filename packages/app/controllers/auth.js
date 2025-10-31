@@ -143,7 +143,7 @@ async function signinController(req, res, next) {
         });
 
       if (!user.is_verified) {
-
+          resendEmail(res, user, userService, userTokenService)
       }
       if (user.is_deleted) {
         return res.status(400).json({
@@ -255,14 +255,6 @@ async function verifyEmailController(req, res, next) {
       });
     }
 
-    if (userToken.isExpired()) {
-      return res.status(403).json({
-        error: STATUS_CODES[403],
-        message: Messages.EXPIRED_TOKEN,
-        statusCode: 403,
-      });
-    }
-
     const user = await userService.getUser(userToken.user_id);
     if (!user) {
       return res.status(404).json({
@@ -270,6 +262,10 @@ async function verifyEmailController(req, res, next) {
         message: Messages.INVALID_TOKEN,
         statusCode: 404,
       });
+    }
+
+    if (userToken.isExpired()) {
+      resendEmail(res, user, userService, userTokenService)
     }
 
     if (user.is_verified) {
@@ -470,33 +466,59 @@ function validateSessionController(req, res) {
   return res.status(200).json({ statusCode: 200, userData: req.userData });
 }
 
-async function resendEmail(req, res, user ,userService, userTokenService ) {
+async function resendEmail(res, user ,userService, userTokenService ) {
   try {
     const userToken = await userTokenService.fetchUserToken(user._id);
 
-    if(!userToken)return;
-  
-    if(user.resend_email_count < 4) {
-        const updatedToken = await userTokenService.updateUserToken(userToken);
-        
-        await sendEmail({
-          id: 2,
-          subject: "Openlogo: Email Verification",
-          recipient: user.email,
-          body: {
-            url: updatedToken.tokenURL(),
-          },
-        });
-
-        return res.status(201).json({
-          message:Messages.RESENT_EMAIL,
-          statusCode: 201,
-        })
-
+    if(!userToken){
+      return res.status(404).json({
+        message: "Verification token not found",
+        statusCode: 404,
+      });
     }
+
+    const now = dayjs();
+    const lastSent = dayjs(user.last_verification_email_sent_at);
+    const hoursSinceLastEmail = now.diff(lastSent, "hour");
+
+    if (hoursSinceLastEmail >= 24) {
+      user.resend_email_count = 1;
+    } 
+    else if (user.resend_email_count >= 3) {
+      return res.status(429).json({
+        message: "Please try again after 24 hours.",
+        statusCode: 429,
+      });
+    }
+    else {
+      user.resend_email_count += 1;
+    }
+    user.last_verification_email_sent_at = now.toDate();
+
+    await userService.updateUser(user._id, user);
+
+    const updatedToken = await userTokenService.updateUserToken(userToken);
+
+    await sendEmail({
+      id: 2,
+      subject: "Openlogo: Email Verification",
+      recipient: user.email,
+      body: {
+        url: updatedToken.tokenURL(),
+      },
+    });
+
+    return res.status(201).json({
+      message: Messages.RESENT_EMAIL,
+      statusCode: 201,
+    });
     
-  } catch(err) {
-    console.log(err)
+  } catch (err) {
+    console.error("Error in resendEmail:", err);
+    return res.status(500).json({
+      message: "Failed to resend verification email",
+      statusCode: 500,
+    });
   }
 }
 

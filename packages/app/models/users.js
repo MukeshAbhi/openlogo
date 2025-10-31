@@ -34,10 +34,6 @@ const userSchema = new mongoose.Schema({
     required: true,
     default: false,
   },
-  first_verification_email_sent_at: {
-    type: Date,
-    default: Date.now,
-  },
   last_verification_email_sent_at: {
     type: Date,
     default: Date.now,
