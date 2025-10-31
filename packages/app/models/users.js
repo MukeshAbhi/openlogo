@@ -34,6 +34,18 @@ const userSchema = new mongoose.Schema({
     required: true,
     default: false,
   },
+  first_verification_email_sent_at: {
+    type: Date,
+    default: Date.now,
+  },
+  last_verification_email_sent_at: {
+    type: Date,
+    default: Date.now,
+  },
+  resend_email_count: {
+    type: Number,
+    default: 1,
+  },
   subscription_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "subscriptions",

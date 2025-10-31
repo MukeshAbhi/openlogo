@@ -119,6 +119,8 @@ async function signupController(req, res, next) {
 async function signinController(req, res, next) {
   try {
     const userService = new UserService();
+    const userTokenService = new UserTokenService();
+
     let user = {};
     if (req.query.type === "guest") {
       user = await userService.getGuestUser();
@@ -140,12 +142,9 @@ async function signinController(req, res, next) {
           statusCode: 404,
         });
 
-      if (!user.is_verified)
-        return res.status(403).json({
-          error: STATUS_CODES[403],
-          message: Messages.EMAIL_NOT_VERIFIED,
-          statusCode: 403,
-        });
+      if (!user.is_verified) {
+
+      }
       if (user.is_deleted) {
         return res.status(400).json({
           error: STATUS_CODES[400],
@@ -170,9 +169,9 @@ async function signinController(req, res, next) {
     /** @type {import("express").CookieOptions}  */
     const cookieOptions = {
       expires: oneDayValidityTimestamp,
-      sameSite: "strict",
-      httpOnly: true,
-      domain: ".openlogo.fyi",
+      // sameSite: "strict",
+      // httpOnly: true,
+      // domain: ".openlogo.fyi",
     };
 
     res.cookie("jwt", user.generateJWT(), cookieOptions);
@@ -203,9 +202,9 @@ function signoutController(req, res, next) {
 
     /** @type {import("express").CookieOptions}  */
     const cookieOptions = {
-      sameSite: "strict",
-      httpOnly: true,
-      domain: ".openlogo.fyi",
+      // sameSite: "strict",
+      // httpOnly: true,
+      // domain: ".openlogo.fyi",
     };
 
     res.clearCookie("jwt", cookieOptions);
@@ -469,6 +468,36 @@ async function resetPasswordController(req, res, next) {
 
 function validateSessionController(req, res) {
   return res.status(200).json({ statusCode: 200, userData: req.userData });
+}
+
+async function resendEmail(req, res, user ,userService, userTokenService ) {
+  try {
+    const userToken = await userTokenService.fetchUserToken(user._id);
+
+    if(!userToken)return;
+  
+    if(user.resend_email_count < 4) {
+        const updatedToken = await userTokenService.updateUserToken(userToken);
+        
+        await sendEmail({
+          id: 2,
+          subject: "Openlogo: Email Verification",
+          recipient: user.email,
+          body: {
+            url: updatedToken.tokenURL(),
+          },
+        });
+
+        return res.status(201).json({
+          message:Messages.RESENT_EMAIL,
+          statusCode: 201,
+        })
+
+    }
+    
+  } catch(err) {
+    console.log(err)
+  }
 }
 
 module.exports = {

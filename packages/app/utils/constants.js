@@ -47,6 +47,7 @@ const Messages = {
   INVALID_USER_ID: "Invalid user id.",
   EMAIL_EXISTS: "Email already exists.",
   EMAIL_DOESNT_EXISTS: "Email doesn't exists.",
+  RESENT_EMAIL: "We have sent a new email. Please verify",
   ACCOUNT_DOESNT_EXISTS: "Account does not exist.",
   USER_NOT_FOUND: "User not found.",
   DATA_NOT_FOUND: "User data not found.",
