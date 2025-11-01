@@ -141,16 +141,6 @@ async function signinController(req, res, next) {
           message: Messages.INCORRECT_EMAIL_PASS,
           statusCode: 404,
         });
-
-      if (!user.is_verified) {
-
-        await resendEmail(res, user ,userService, userTokenService)
-        //   return res.status(403).json({
-        //   error: STATUS_CODES[403],
-        //   message: Messages.EMAIL_NOT_VERIFIED,
-        //   statusCode: 403,
-        // });
-      }
       if (user.is_deleted) {
         return res.status(400).json({
           error: STATUS_CODES[400],
@@ -164,6 +154,14 @@ async function signinController(req, res, next) {
           error: STATUS_CODES[404],
           message: Messages.INCORRECT_EMAIL_PASS,
           statusCode: 404,
+        });
+      }
+      if (!user.is_verified) {
+        const result = await resendEmail(res, user ,userService, userTokenService)
+        return res.status(result.statusCode).json({
+          message: result.message,
+          statusCode: result.statusCode,
+          source: "resendEmail"
         });
       }
     }
@@ -271,7 +269,12 @@ async function verifyEmailController(req, res, next) {
     }
 
     if (userToken.isExpired()) {
-      resendEmail(res, user, userService, userTokenService)
+      const result = await resendEmail(res, user ,userService, userTokenService)
+        return res.status(result.statusCode).json({
+          message: result.message,
+          statusCode: result.statusCode,
+          source: "resendEmail"
+        });
     }
 
     if (user.is_verified) {
@@ -475,14 +478,15 @@ function validateSessionController(req, res) {
 async function resendEmail(res, user ,userService, userTokenService ) {
   try {
     const userToken = await userTokenService.fetchUserTokenByUserId(user._id);
-
+  
     if(!userToken){
-      return res.status(404).json({
-        message: "Verification token not found",
-        statusCode: 404,
-      });
+      return { 
+        success: false, 
+        message: "Verification token not found", 
+        statusCode: 404 
+      };
     }
-
+    
     const now = dayjs();
     const lastSent = dayjs(user.last_verification_email_sent_at);
     const hoursSinceLastEmail = now.diff(lastSent, "hour");
@@ -491,16 +495,17 @@ async function resendEmail(res, user ,userService, userTokenService ) {
       await userService.updateUserEmailCount(user, true);
     } 
     else if (user.resend_email_count >= 3) {
-      return res.status(429).json({
-        message: "Please try again after 24 hours.",
-        statusCode: 429,
-      });
+      return { 
+        success: false, 
+        message: "Try again after 24 hours", 
+        statusCode: 429 
+      };
     } 
     else {
       await userService.updateUserEmailCount(user, false);
     }
 
-    const updatedToken = await userTokenService.updateUserToken(userToken);
+    const updatedToken = await userTokenService.updateUserToken(userToken.token);
 
     await sendEmail({
       id: 2,
@@ -511,17 +516,19 @@ async function resendEmail(res, user ,userService, userTokenService ) {
       },
     });
 
-    return res.status(201).json({
-      message: Messages.RESENT_EMAIL,
-      statusCode: 201,
-    });
+    return { 
+      success: true, 
+      message: "Verification email resent", 
+      statusCode: 201 
+    };
     
   } catch (err) {
     console.error("Error in resendEmail:", err);
-    return res.status(500).json({
-      message: "Failed to resend verification email",
-      statusCode: 500,
-    });
+    return { 
+      success: false, 
+      message: "Failed to resend verification email", 
+      statusCode: 500 
+    };
   }
 }
 
