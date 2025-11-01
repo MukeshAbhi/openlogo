@@ -143,7 +143,13 @@ async function signinController(req, res, next) {
         });
 
       if (!user.is_verified) {
-          resendEmail(res, user, userService, userTokenService)
+
+        await resendEmail(res, user ,userService, userTokenService)
+        //   return res.status(403).json({
+        //   error: STATUS_CODES[403],
+        //   message: Messages.EMAIL_NOT_VERIFIED,
+        //   statusCode: 403,
+        // });
       }
       if (user.is_deleted) {
         return res.status(400).json({
@@ -468,7 +474,7 @@ function validateSessionController(req, res) {
 
 async function resendEmail(res, user ,userService, userTokenService ) {
   try {
-    const userToken = await userTokenService.fetchUserToken(user._id);
+    const userToken = await userTokenService.fetchUserTokenByUserId(user._id);
 
     if(!userToken){
       return res.status(404).json({
@@ -482,20 +488,17 @@ async function resendEmail(res, user ,userService, userTokenService ) {
     const hoursSinceLastEmail = now.diff(lastSent, "hour");
 
     if (hoursSinceLastEmail >= 24) {
-      user.resend_email_count = 1;
+      await userService.updateUserEmailCount(user, true);
     } 
     else if (user.resend_email_count >= 3) {
       return res.status(429).json({
         message: "Please try again after 24 hours.",
         statusCode: 429,
       });
-    }
+    } 
     else {
-      user.resend_email_count += 1;
+      await userService.updateUserEmailCount(user, false);
     }
-    user.last_verification_email_sent_at = now.toDate();
-
-    await userService.updateUser(user._id, user);
 
     const updatedToken = await userTokenService.updateUserToken(userToken);
 

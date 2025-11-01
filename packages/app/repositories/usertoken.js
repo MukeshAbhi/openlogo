@@ -22,6 +22,10 @@ class UserTokenRepository extends BaseRepository {
     return await UserToken.findOne({ token: token, is_deleted: true });
   }
 
+  async fetchUserTokenByUserId(userId) {
+    return await UserToken.findOne({ user_id: userId, is_deleted: false });
+  }
+
   async updateUserToken(token) {
     const updatedToken = await UserToken.findOneAndUpdate(
       { token, is_deleted: false},

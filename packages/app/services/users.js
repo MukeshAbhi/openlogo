@@ -2,7 +2,7 @@ const bcrypt = require("bcryptjs");
 const KeyService = require("../services/keys");
 const { UsersRepository } = require("../repositories");
 const { UserType } = require("../utils/constants");
-const dayjs = require("dayjs");
+
 class UserService {
   constructor() {
     this.userRepository = new UsersRepository();
@@ -189,6 +189,16 @@ class UserService {
       return false;
     }
     return true;
+  }
+
+  async updateUserEmailCount(user, reset = false) {
+    const updatedFields = {
+      last_verification_email_sent_at: new Date(),
+      resend_email_count: reset ? 1 : (user.resend_email_count || 0) + 1,
+    };
+
+    const updatedUser = await this.userRepository.update(user._id, updatedFields);
+    return updatedUser;
   }
 }
 
