@@ -197,7 +197,10 @@ class UserService {
       resend_email_count: reset ? 1 : (user.resend_email_count || 0) + 1,
     };
 
-    const updatedUser = await this.userRepository.update(user._id, updatedFields);
+    const updatedUser = await this.userRepository.update(
+      user._id,
+      updatedFields
+    );
     return updatedUser;
   }
 }

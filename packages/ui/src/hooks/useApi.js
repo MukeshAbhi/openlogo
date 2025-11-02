@@ -15,6 +15,9 @@ export const useApi = (config) => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // console.log("data :", data )
+  // console.log("errorMessage :", errorMsg)
+
   const makeRequest = async (dynamicConfig = {}) => {
     setErrorMsg(null);
     setIsSuccess(false);

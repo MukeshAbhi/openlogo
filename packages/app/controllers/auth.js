@@ -157,11 +157,16 @@ async function signinController(req, res, next) {
         });
       }
       if (!user.is_verified) {
-        const result = await resendEmail(res, user ,userService, userTokenService)
+        const result = await resendEmail(
+          res,
+          user,
+          userService,
+          userTokenService
+        );
         return res.status(result.statusCode).json({
           message: result.message,
           statusCode: result.statusCode,
-          source: "resendEmail"
+          source: "resendEmail",
         });
       }
     }
@@ -269,12 +274,17 @@ async function verifyEmailController(req, res, next) {
     }
 
     if (userToken.isExpired()) {
-      const result = await resendEmail(res, user ,userService, userTokenService)
-        return res.status(result.statusCode).json({
-          message: result.message,
-          statusCode: result.statusCode,
-          source: "resendEmail"
-        });
+      const result = await resendEmail(
+        res,
+        user,
+        userService,
+        userTokenService
+      );
+      return res.status(result.statusCode).json({
+        message: result.message,
+        statusCode: result.statusCode,
+        source: "resendEmail",
+      });
     }
 
     if (user.is_verified) {
@@ -475,37 +485,37 @@ function validateSessionController(req, res) {
   return res.status(200).json({ statusCode: 200, userData: req.userData });
 }
 
-async function resendEmail(res, user ,userService, userTokenService ) {
+async function resendEmail(res, user, userService, userTokenService) {
   try {
     const userToken = await userTokenService.fetchUserTokenByUserId(user._id);
-  
-    if(!userToken){
-      return { 
-        success: false, 
-        message: "Verification token not found", 
-        statusCode: 404 
+
+    if (!userToken) {
+      return {
+        success: false,
+        message: "Verification token not found",
+        statusCode: 404,
       };
     }
-    
+
     const now = dayjs();
     const lastSent = dayjs(user.last_verification_email_sent_at);
     const hoursSinceLastEmail = now.diff(lastSent, "hour");
 
     if (hoursSinceLastEmail >= 24) {
       await userService.updateUserEmailCount(user, true);
-    } 
-    else if (user.resend_email_count >= 3) {
-      return { 
-        success: false, 
-        message: "Try again after 24 hours", 
-        statusCode: 429 
+    } else if (user.resend_email_count >= 3) {
+      return {
+        success: false,
+        message: "Try again after 24 hours",
+        statusCode: 429,
       };
-    } 
-    else {
+    } else {
       await userService.updateUserEmailCount(user, false);
     }
 
-    const updatedToken = await userTokenService.updateUserToken(userToken.token);
+    const updatedToken = await userTokenService.updateUserToken(
+      userToken.token
+    );
 
     await sendEmail({
       id: 2,
@@ -516,18 +526,17 @@ async function resendEmail(res, user ,userService, userTokenService ) {
       },
     });
 
-    return { 
-      success: true, 
-      message: "Verification email resent", 
-      statusCode: 201 
+    return {
+      success: true,
+      message: "Verification email resent",
+      statusCode: 201,
     };
-    
   } catch (err) {
     console.error("Error in resendEmail:", err);
-    return { 
-      success: false, 
-      message: "Failed to resend verification email", 
-      statusCode: 500 
+    return {
+      success: false,
+      message: "Failed to resend verification email",
+      statusCode: 500,
     };
   }
 }

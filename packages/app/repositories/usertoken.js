@@ -28,7 +28,7 @@ class UserTokenRepository extends BaseRepository {
 
   async updateUserToken(token) {
     const updatedToken = await UserToken.findOneAndUpdate(
-      { token, is_deleted: false},
+      { token, is_deleted: false },
       {
         $set: {
           expire_at: dayjs().add(1, "day").toDate(), // set expiry to 24h from now
@@ -37,7 +37,7 @@ class UserTokenRepository extends BaseRepository {
       { new: true }
     );
 
-    return updatedToken
+    return updatedToken;
   }
 }
 

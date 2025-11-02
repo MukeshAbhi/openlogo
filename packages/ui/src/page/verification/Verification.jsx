@@ -13,8 +13,10 @@ const Verification = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [title, setTitle] = useState(VERIFICATION.title);
   const [message, setMessage] = useState(VERIFICATION.message);
+  const [data, setData ] = useState("");
+  const [success, setSuccess] = useState(false)
 
-  const { makeRequest, data, errorMsg } = useApi({
+  const { fetchRequest, errorMsg } = useApi({
     method: "get",
     url: `/auth/verify/${token}`,
   });
@@ -23,19 +25,32 @@ const Verification = () => {
     if (!token || hasVerified.current) return;
     hasVerified.current = true;
 
-    await makeRequest();
-  }, [token, makeRequest]);
+    const {data: response, success,} = await fetchRequest();
+    setData(response);
+    setSuccess(success)
+    console.log("data :" , response)
+  }, [token, fetchRequest]);
 
   useEffect(() => {
     performVerification();
   }, [performVerification]);
 
   useEffect(() => {
-    if (data) {
-      setIsLoading(false);
-      setTitle("Verified");
-      setMessage(data?.message);
-      setTimeout(() => navigate("/"), 3000);
+    if(success) {
+      if (!data.source) {
+        console.log(data);
+        
+        setIsLoading(false);
+        setTitle("Verified");
+        setMessage(data?.message);
+        setTimeout(() => navigate("/"), 6000);
+      } else if (data.statusCode == 201) {
+        console.log(data);
+        setIsLoading(false);
+        setTitle("Not yet Veified");
+        setMessage(data?.message);
+        setTimeout(() => navigate("/"), 3000);
+      } 
     }
   }, [data, navigate]);
 
@@ -44,6 +59,8 @@ const Verification = () => {
       setIsLoading(false);
       setTitle("Error");
       setMessage(errorMsg);
+      console.log("errorMsg : ", errorMsg);
+      
     }
   }, [errorMsg]);
 

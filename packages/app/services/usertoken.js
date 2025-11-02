@@ -25,11 +25,11 @@ class UserTokenService {
   }
 
   async fetchUserTokenByUserId(userId) {
-    return await this.userTokenRepository.fetchUserTokenByUserId(userId)
+    return await this.userTokenRepository.fetchUserTokenByUserId(userId);
   }
 
   async updateUserToken(token) {
-    return await this.userTokenRepository.updateUserToken(token)
+    return await this.userTokenRepository.updateUserToken(token);
   }
 
   async deleteUserToken(userToken) {
